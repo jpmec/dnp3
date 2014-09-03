@@ -47,6 +47,32 @@ using namespace asiodnp3;
 
 int main(int argc, char* argv[])
 {
+	// configuration options
+	uint16_t tcp_server_port = 20000;
+	uint16_t link_local_addr = 10;
+	uint16_t link_remote_addr = 1;
+
+	if (1 < argc)
+	{
+		tcp_server_port = atoi(argv[1]);
+	}
+
+	std::cout << "tcp port: " << tcp_server_port << std::endl;
+
+	if (2 < argc)
+	{
+		link_local_addr = atoi(argv[2]);
+	}
+
+	std::cout << "link local address: " << link_local_addr << std::endl;
+
+	if (3 < argc)
+	{
+		link_remote_addr = atoi(argv[3]);
+	}
+
+	std::cout << "link remote address: " << link_remote_addr << std::endl;
+
 
 	// Specify what log levels to use. NORMAL is warning and above
 	// You can add all the comms logging by uncommenting below.
@@ -59,9 +85,9 @@ int main(int argc, char* argv[])
 	// send log messages to the console
 	manager.AddLogSubscriber(&ConsoleLogger::Instance());
 
-	// Create a TCP server (listener)	
-	auto pChannel= manager.AddTCPServer("server", FILTERS, TimeDuration::Seconds(5), TimeDuration::Seconds(5), "0.0.0.0", 20000);	
-	
+	// Create a TCP server (listener)
+	auto pChannel= manager.AddTCPServer("server", FILTERS, TimeDuration::Seconds(5), TimeDuration::Seconds(5), "0.0.0.0", tcp_server_port);
+
 	// Optionally, you can bind listeners to the channel to get state change notifications
 	// This listener just prints the changes to the console
 	pChannel->AddStateListener([](ChannelState state)
@@ -69,14 +95,14 @@ int main(int argc, char* argv[])
 		std::cout << "channel state: " << ChannelStateToString(state) << std::endl;
 	});
 
-	// The main object for a outstation. The defaults are useable, 
+	// The main object for a outstation. The defaults are useable,
 	// but understanding the options are important.
-	OutstationStackConfig stackConfig;	
-	
+	OutstationStackConfig stackConfig;
+
 	// You must specify the shape of your database and the size of the event buffers
 	stackConfig.dbTemplate = DatabaseTemplate::AllTypes(10);
 	stackConfig.outstation.eventBufferConfig = EventBufferConfig::AllTypes(10);
-	
+
 	// you can override an default outstation parameters here
 	// in this example, we've enabled the oustation to use unsolicted reporting
 	// if the master enables it
@@ -84,20 +110,20 @@ int main(int argc, char* argv[])
 
 	// You can override the default link layer settings here
 	// in this example we've changed the default link layer addressing
-	stackConfig.link.LocalAddr = 10;
-	stackConfig.link.RemoteAddr = 1;
-	
+	stackConfig.link.LocalAddr = link_local_addr;
+	stackConfig.link.RemoteAddr = link_remote_addr;
+
 	// You can optionally change the default reporting variations
 	stackConfig.outstation.defaultEventResponses.binary = EventBinaryResponse::Group2Var2;
 	stackConfig.outstation.defaultEventResponses.analog = EventAnalogResponse::Group32Var3;
-	
+
 	// Create a new outstation with a log level, command handler, and
 	// config info this	returns a thread-safe interface used for
 	// updating the outstation's database.
 	auto pOutstation = pChannel->AddOutstation("outstation", SuccessCommandHandler::Instance(), DefaultOutstationApplication::Instance(), stackConfig);
 
 	// Enable the outstation and start communications
-	pOutstation->Enable();	
+	pOutstation->Enable();
 
 	// variables used in example loop
 	string input;
@@ -105,7 +131,7 @@ int main(int argc, char* argv[])
 	double value = 0;
 	bool binary = false;
 	DoubleBit dbit = DoubleBit::DETERMINED_OFF;
-	
+
 	while (true)
 	{
 		std::cout << "Enter one or more measurement changes then press <enter>" << std::endl;
@@ -118,25 +144,25 @@ int main(int argc, char* argv[])
 			switch (c)
 			{
 				case('c') :
-				{				
+				{
 					tx.Update(Counter(count), 0);
 					++count;
 					break;
 				}
 				case('a') :
-				{				
+				{
 					tx.Update(Analog(value), 0);
 					value += 1;
 					break;
 				}
 				case('b') :
-				{				
+				{
 					tx.Update(Binary(binary), 0);
 					binary = !binary;
 					break;
 				}
 				case('d') :
-				{				
+				{
 					tx.Update(DoubleBitBinary(dbit), 0);
 					dbit = (dbit == DoubleBit::DETERMINED_OFF) ? DoubleBit::DETERMINED_ON : DoubleBit::DETERMINED_OFF;
 					break;
@@ -151,7 +177,7 @@ int main(int argc, char* argv[])
 					break;
 			}
 		}
-		
+
 	}
 
 	return 0;
