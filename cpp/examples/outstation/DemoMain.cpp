@@ -22,35 +22,67 @@
 #include <asiodnp3/DNP3Manager.h>
 #include <asiodnp3/PrintingSOEHandler.h>
 #include <asiodnp3/ConsoleLogger.h>
+#include <asiodnp3/DNP3ManagerTCPServerConfig.h>
 
 #include <asiopal/UTCTimeSource.h>
 
-
 #include <opendnp3/outstation/TimeTransaction.h>
-
-//#include <opendnp3/outstation/ICommandHandler.h>
 #include <opendnp3/outstation/SimpleCommandHandler.h>
-
 #include <opendnp3/outstation/Database.h>
-
 #include <opendnp3/LogLevels.h>
+
+#include <boostdnp3/opendnp3/outstation/OutstationStackConfigPropertyTree.h>
+#include <boostdnp3/asiodnp3/DNP3ManagerTCPServerConfigPropertyTree.h>
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #include <string>
 #include <thread>
 #include <iostream>
+
+
+
 
 using namespace std;
 using namespace opendnp3;
 using namespace openpal;
 using namespace asiopal;
 using namespace asiodnp3;
+using namespace boostdnp3;
+
+using namespace boost::property_tree;
+
+using namespace boostdnp3::asiodnp3;
+using namespace boostdnp3::opendnp3;
+
 
 int main(int argc, char* argv[])
 {
+	string options_filename;
 
-	// Specify what log levels to use. NORMAL is warning and above
-	// You can add all the comms logging by uncommenting below.
-	const uint32_t FILTERS = levels::NORMAL; // | levels::ALL_COMMS;
+	if (1 < argc)
+	{
+		options_filename = argv[1];
+
+		cout << "options filename: " << options_filename << endl;
+	}
+	else
+	{
+		cerr << "must provide an options file" << endl;
+		return 1;
+	}
+
+	ptree pt;
+	try
+    {
+        read_json(options_filename, pt);
+    }
+    catch (json_parser_error& error)
+    {
+        cerr << error.what() << endl;
+        return 1;
+    }
 
 	// This is the main point of interaction with the stack
 	// Allocate a single thread to the pool since this is a single outstation
@@ -59,45 +91,49 @@ int main(int argc, char* argv[])
 	// send log messages to the console
 	manager.AddLogSubscriber(&ConsoleLogger::Instance());
 
-	// Create a TCP server (listener)	
-	auto pChannel= manager.AddTCPServer("server", FILTERS, TimeDuration::Seconds(5), TimeDuration::Seconds(5), "0.0.0.0", 20000);	
-	
+	// Get TCP server configuration
+    ptree tcp_server_config_ptree = pt.get_child("DNP3Manager.DNP3Channel.DNP3ManagerTCPServerConfig");
+
+    DNP3ManagerTCPServerConfig tcp_server_config;
+
+    tcp_server_config << tcp_server_config_ptree;
+
+	// Create a TCP server (listener)
+	auto pChannel= manager.AddTCPServer( tcp_server_config.id.c_str()
+		                               , tcp_server_config.levels
+		                               , tcp_server_config.minOpenRetry
+		                               , tcp_server_config.maxOpenRetry
+		                               , tcp_server_config.endpoint
+		                               , tcp_server_config.port
+		                               , tcp_server_config.openDelayStrategy);
+
+
 	// Optionally, you can bind listeners to the channel to get state change notifications
 	// This listener just prints the changes to the console
 	pChannel->AddStateListener([](ChannelState state)
 	{
-		std::cout << "channel state: " << ChannelStateToString(state) << std::endl;
+		cout << "channel state: " << ChannelStateToString(state) << endl;
 	});
 
-	// The main object for a outstation. The defaults are useable, 
-	// but understanding the options are important.
-	OutstationStackConfig stackConfig;	
-	
-	// You must specify the shape of your database and the size of the event buffers
-	stackConfig.dbTemplate = DatabaseTemplate::AllTypes(10);
-	stackConfig.outstation.eventBufferConfig = EventBufferConfig::AllTypes(10);
-	
-	// you can override an default outstation parameters here
-	// in this example, we've enabled the oustation to use unsolicted reporting
-	// if the master enables it
-	stackConfig.outstation.params.allowUnsolicited = true;
 
-	// You can override the default link layer settings here
-	// in this example we've changed the default link layer addressing
-	stackConfig.link.LocalAddr = 10;
-	stackConfig.link.RemoteAddr = 1;
-	
-	// You can optionally change the default reporting variations
-	stackConfig.outstation.defaultEventResponses.binary = EventBinaryResponse::Group2Var2;
-	stackConfig.outstation.defaultEventResponses.analog = EventAnalogResponse::Group32Var3;
-	
+	ptree outstation_stack_config_ptree = pt.get_child("DNP3Manager.DNP3Channel.Outstation.OutstationStackConfig");
+
+	// The main object for a outstation. The defaults are useable,
+	// but understanding the options are important.
+	OutstationStackConfig stack_config;
+
+	stack_config << outstation_stack_config_ptree;
+
 	// Create a new outstation with a log level, command handler, and
 	// config info this	returns a thread-safe interface used for
 	// updating the outstation's database.
-	auto pOutstation = pChannel->AddOutstation("outstation", SuccessCommandHandler::Instance(), DefaultOutstationApplication::Instance(), stackConfig);
+	auto pOutstation = pChannel->AddOutstation( "outstation"
+		                                      , SuccessCommandHandler::Instance()
+		                                      , DefaultOutstationApplication::Instance()
+		                                      , stack_config);
 
 	// Enable the outstation and start communications
-	pOutstation->Enable();	
+	pOutstation->Enable();
 
 	// variables used in example loop
 	string input;
@@ -105,12 +141,12 @@ int main(int argc, char* argv[])
 	double value = 0;
 	bool binary = false;
 	DoubleBit dbit = DoubleBit::DETERMINED_OFF;
-	
+
 	while (true)
 	{
-		std::cout << "Enter one or more measurement changes then press <enter>" << std::endl;
-		std::cout << "c = counter, b = binary, d = doublebit, a = analog, x = exit" << std::endl;
-		std::cin >> input;
+		cout << "Enter one or more measurement changes then press <enter>" << endl;
+		cout << "c = counter, b = binary, d = doublebit, a = analog, x = exit" << endl;
+		cin >> input;
 
 		TimeTransaction tx(pOutstation->GetDatabase(), UTCTimeSource::Instance().Now());
 		for (char& c : input)
@@ -118,25 +154,25 @@ int main(int argc, char* argv[])
 			switch (c)
 			{
 				case('c') :
-				{				
+				{
 					tx.Update(Counter(count), 0);
 					++count;
 					break;
 				}
 				case('a') :
-				{				
+				{
 					tx.Update(Analog(value), 0);
 					value += 1;
 					break;
 				}
 				case('b') :
-				{				
+				{
 					tx.Update(Binary(binary), 0);
 					binary = !binary;
 					break;
 				}
 				case('d') :
-				{				
+				{
 					tx.Update(DoubleBitBinary(dbit), 0);
 					dbit = (dbit == DoubleBit::DETERMINED_OFF) ? DoubleBit::DETERMINED_ON : DoubleBit::DETERMINED_OFF;
 					break;
@@ -147,11 +183,11 @@ int main(int argc, char* argv[])
 					return 0;
 
 				default:
-					std::cout << "No action registered for: " << c << std::endl;
+					cout << "No action registered for: " << c << endl;
 					break;
 			}
 		}
-		
+
 	}
 
 	return 0;

@@ -8,11 +8,12 @@ OPENPAL_INCLUDE = $(top_srcdir)/cpp/libs/openpal/src
 OPENDNP3_INCLUDE = $(top_srcdir)/cpp/libs/opendnp3/src
 ASIOPAL_INCLUDE = $(top_srcdir)/cpp/libs/asiopal/src
 ASIODNP3_INCLUDE = $(top_srcdir)/cpp/libs/asiodnp3/src
+BOOSTDNP3_INCLUDE = $(top_srcdir)/cpp/libs/boostdnp3/src
 CATCH_INCLUDE = $(top_srcdir)/cpp/tests/catch
 
 bin_PROGRAMS = masterdemo outstationdemo
 
-lib_LTLIBRARIES = libopenpal.la libasiopal.la libopendnp3.la libasiodnp3.la
+lib_LTLIBRARIES = libopenpal.la libasiopal.la libopendnp3.la libasiodnp3.la libboostdnp3.la
 
 # ls cpp/libs/openpal/src/openpal/**/*.cpp -1 | awk '{print $0" \\"}'
 libopenpal_la_LDFLAGS = -version-info 1:1:0
@@ -210,6 +211,7 @@ cpp/libs/asiodnp3/src/asiodnp3/DefaultMasterApplication.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/DestructorHook.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/DNP3Channel.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/DNP3Manager.cpp \
+cpp/libs/asiodnp3/src/asiodnp3/DNP3ManagerTCPServerConfig.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/MasterStackImpl.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/MultidropTaskLock.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/OutstationStackImpl.cpp \
@@ -217,17 +219,25 @@ cpp/libs/asiodnp3/src/asiodnp3/PrintingSOEHandler.cpp \
 cpp/libs/asiodnp3/src/asiodnp3/StackActionHandler.cpp
 
 
-masterdemo_CXXFLAGS = -I$(OPENPAL_INCLUDE) -I$(ASIOPAL_INCLUDE) -I $(OPENDNP3_INCLUDE) -I$(ASIODNP3_INCLUDE) $(ASIO_CONFIG) -Wl,--no-as-needed
+#ls cpp/libs/boostdnp3/src/boostdnp3/**/*.cpp -1 | awk '{print $0" \\"}'
+libboostdnp3_la_CPPFLAGS = -I$(OPENPAL_INCLUDE) -I $(OPENDNP3_INCLUDE) -I$(ASIODNP3_INCLUDE) -I$(BOOST_ROOT) -I $(BOOSTDNP3_INCLUDE)
+libboostdnp3_la_LDFLAGS = -version-info 1:1:0
+libboostdnp3_la_SOURCES = \
+cpp/libs/boostdnp3/src/boostdnp3/opendnp3/outstation/OutstationStackConfigPropertyTree.cpp\
+cpp/libs/boostdnp3/src/boostdnp3/asiodnp3/DNP3ManagerTCPServerConfigPropertyTree.cpp
+
+
+masterdemo_CXXFLAGS = -I$(OPENPAL_INCLUDE) -I$(ASIOPAL_INCLUDE) -I $(OPENDNP3_INCLUDE) -I$(ASIODNP3_INCLUDE) $(ASIO_CONFIG) -Wl
 masterdemo_LDFLAGS = -pthread
 masterdemo_LDADD = libopenpal.la libasiopal.la libopendnp3.la libasiodnp3.la
 masterdemo_SOURCES = cpp/examples/master/DemoMain.cpp
 
-outstationdemo_CXXFLAGS = -I$(OPENPAL_INCLUDE) -I$(ASIOPAL_INCLUDE) -I $(OPENDNP3_INCLUDE) -I$(ASIODNP3_INCLUDE) $(ASIO_CONFIG) -Wl,--no-as-needed
+outstationdemo_CXXFLAGS = -I$(OPENPAL_INCLUDE) -I$(ASIOPAL_INCLUDE) -I $(OPENDNP3_INCLUDE) -I$(ASIODNP3_INCLUDE) $(ASIO_CONFIG) -I$(BOOST_ROOT) -I$(BOOSTDNP3_INCLUDE) -Wl,
 outstationdemo_LDFLAGS = -pthread
-outstationdemo_LDADD = libopenpal.la libasiopal.la libopendnp3.la libasiodnp3.la
+outstationdemo_LDADD = libopenpal.la libasiopal.la libopendnp3.la libasiodnp3.la libboostdnp3.la
 outstationdemo_SOURCES = cpp/examples/outstation/DemoMain.cpp
 
-apdufuzzer_CXXFLAGS = -I$(OPENPAL_INCLUDE) -I$(OPENDNP3_INCLUDE) -Wl,--no-as-needed
+apdufuzzer_CXXFLAGS = -I$(OPENPAL_INCLUDE) -I$(OPENDNP3_INCLUDE) -Wl
 apdufuzzer_LDFLAGS = -pthread
 apdufuzzer_LDADD = libopenpal.la libopendnp3.la
 apdufuzzer_SOURCES = cpp/tests/apdufuzzer/ApduFuzzer.cpp

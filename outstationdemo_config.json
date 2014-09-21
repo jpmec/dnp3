@@ -1,0 +1,80 @@
+{
+    "__version__": "2.0.0",
+    "__comments__": [
+        "This file defines all the parameters used by the outstation demo."
+    ],
+
+    "DNP3Manager": {
+
+        "DNP3Channel": {
+
+            "DNP3ManagerTCPServerConfig" : {
+                "Id": "server",
+                "Levels": "NORMAL",
+                "MinOpenRetry": 5,
+                "MaxOpenRetry": 5,
+                "Endpoint": "0.0.0.0",
+                "Port": 20000,
+                "OpenDelayStrategy": "ExponentialBackoffStrategy"
+            },
+
+            "Outstation": {
+                "id": "outstation",
+                "OutstationStackConfig" : {
+                    "DatabaseTemplate": {
+                        "Type": "AllTypes",
+                        "Count": 10
+                    },
+                    "OutstationConfig": {
+                        "OutstationParams": {
+                            "MaxControlsPerRequest": null,
+                            "SelectTimeout": null,
+                            "SolicitedConfirmTimeout": null,
+                            "UnsolicitedConfirmTimeout": null,
+                            "UnsolicitedRetryTimeout": null,
+                            "MaxTxFragmentSize": null,
+                            "MaxRxFragmentSize": null,
+                            "AllowUnsolicited": null,
+                            "UnsolicitedClassMask": null
+                        },
+                        "EventBufferConfig": {
+                            "MaxBinaryEvents": null,
+                            "MaxDoubleBinaryEvents": null,
+                            "MaxAnalogEvents": null,
+                            "MaxCounterEvents": null,
+                            "MaxFrozenCounterEvents": null,
+                            "MaxBinaryOutputStatusEvents": null,
+                            "MaxAnalogOutputStatusEvents": null
+                        },
+                        "StaticResponseConfig": {
+                            "StaticBinaryResponse": null,
+                            "StaticDoubleBinaryResponse": null,
+                            "StaticAnalogResponse": null,
+                            "StaticCounterRespone": null,
+                            "StaticFrozenCounterResponse": null,
+                            "StaticBinaryOutputStatusResponse": null,
+                            "StaticAnalogOutputStatusResponse": null
+                        },
+                        "EventResponseConfig": {
+                            "EventBinaryResponse": "Group2Var2",
+                            "EventDoubleBinaryResponse": null,
+                            "EventAnalogResponse": "Group32Var3",
+                            "EventCounterResponse": null,
+                            "EventFrozenCounterResponse": null,
+                            "EventBinaryOutputStatusResponse": null,
+                            "EventAnalogOutputStatusResponse": null
+                        }
+                    },
+                    "LinkConfig": {
+                        "IsMaster": false,
+                        "UseConfirms": null,
+                        "NumRetry": null,
+                        "LocalAddr": 10,
+                        "RemoteAddr": 1,
+                        "Timeout": null
+                    }
+                }
+            }
+        }
+    }
+}

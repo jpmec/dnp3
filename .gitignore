@@ -94,3 +94,6 @@ coverage.info
 cpp/demos/cover.info
 cpp/demos/cover_html/
 
+
+# OSX generated files
+.DS_Store
